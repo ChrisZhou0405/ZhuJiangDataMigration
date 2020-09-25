@@ -106,15 +106,15 @@ namespace ZhuJiangDataMigration
             }
             Stopwatch stopwatch1 = new Stopwatch();
             stopwatch1.Start();
-            sourcesData = GetMigrationSource(startYear, startMonth, endYear,endMonth,sourceType);
+            sourcesData = GetMigrationSource(startYear, startMonth, endYear, endMonth, sourceType);
             stopwatch1.Stop();
             Stopwatch stopwatch2 = new Stopwatch();
             stopwatch2.Start();
             #region 转成要导出Excel的数据集合
-           
+
             foreach (DataRow row in sourcesData.Rows)
             {
-              
+
                 foreach (var colName in salaryColumnNameList)
                 {
                     var mapper = salaryItemMappers.FirstOrDefault(c => c.TQSalaryId == Convert.ToInt32(colName.Substring(7, 6)));
@@ -123,7 +123,7 @@ namespace ZhuJiangDataMigration
                         var costAssign = new CostAssign
                         {
                             Year = row["FYEAR"].ToString(),
-                            Month = row["FPERIOD"].ToString().PadLeft(2,'0'),
+                            Month = row["FPERIOD"].ToString().PadLeft(2, '0'),
                             PlanNum = planMapper[row["PlanNum"].ToString()],
                             PlanName = row["PlanName"].ToString(),
                             StaffNum = row["StaffNum"].ToString(),
@@ -163,7 +163,7 @@ namespace ZhuJiangDataMigration
                 {
                     Filter = "Excel文件|*.xlsx;*.xls",
                     FilterIndex = 1,
-                    FileName = $@"{startYear}{startMonth.PadLeft(2, '0')}-{endYear}{endMonth.PadLeft(2,'0')}{sourceType}_费用分配单引入数据.xlsx"
+                    FileName = $@"{startYear}{startMonth.PadLeft(2, '0')}-{endYear}{endMonth.PadLeft(2, '0')}{sourceType}_费用分配单引入数据.xlsx"
                 };
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -175,37 +175,36 @@ namespace ZhuJiangDataMigration
                     costAssigns.ForEach(c => c.Seq = (costAssigns.IndexOf(c) + 1).ToString());
                     var groupbyResult = costAssigns.GroupBy(c => new { c.Year, c.Month, c.PlanNum }).ToList();
                     int billID = 100001;
+                    ExcelPackage excelPackage = new ExcelPackage();
+                    excelPackage.Workbook.Properties.Title = "费用分配单引入数据";
+                    excelPackage.Workbook.Properties.Author = "周房城";
+                    excelPackage.Workbook.Properties.Company = "金蝶医疗";
+                    var tasks = new Task[groupbyResult.Count];
                     foreach (var item in groupbyResult)
                     {
-                        //var model = item.FirstOrDefault();
-                        var model = costAssigns.FirstOrDefault(c => c.Year == item.Key.Year && c.Month == item.Key.Month && c.PlanNum == item.Key.PlanNum && c.StaffNum == item.FirstOrDefault().StaffNum);
+                        var model = item.FirstOrDefault();
+                       
                         model.BillID = billID.ToString();
                         model.OrgID = 100.ToString();
-                        model.BusinessDate = $"{model.Year}/{model.Month}/{DateTime.DaysInMonth(Convert.ToInt32(model.Year), Convert.ToInt32(model.Month))}";
-                        item.Skip(1).ToList().ForEach(c=> {
-                            c.Year = string.Empty;
-                            c.Month = string.Empty;
-                            c.PlanNum = string.Empty;
-                            c.PlanName = string.Empty;
-                            });
                         billID++;
+                        tasks[groupbyResult.IndexOf(item)] =Task.Run(() => CreatExcelBySheet(excelPackage,item.ToList()));
                     }
-                    var dt = ToDataTable<CostAssign>(costAssigns);
-                    DataSet dataSet = new DataSet();
-                    dataSet.Tables.Add(dt);
+                    Task.WaitAll(tasks);
+                   excelPackage.SaveAsAsync(new FileInfo(path)).Wait();
+                  
                     stopwatch3.Stop();
                     #endregion
                     Stopwatch stopwatch4 = new Stopwatch();
                     stopwatch4.Start();
-                    DataSetToExcel(dataSet, path);
+                  
                     //bool isCompleted = CreateExcel(costAssigns, path);
                     stopwatch4.Stop();
-                  bool  isCompleted = true;
-                  
-                   
+                    bool isCompleted = true;
+
+
                     if (isCompleted)
                     {
-                        MessageBox.Show($" 生成Excel成功。 从数据库读取数据耗时：{stopwatch1.ElapsedMilliseconds/1000}秒；  转成List集合 耗时：{stopwatch2.ElapsedMilliseconds/1000}秒；  集合处理 转成对应DataTable 耗时：{stopwatch3.ElapsedMilliseconds/1000}秒；datatable生成Excel文件 耗时：{stopwatch4.ElapsedMilliseconds/1000}秒");
+                        MessageBox.Show($" 生成Excel成功。 从数据库读取数据stopwatch1耗时：{stopwatch1.ElapsedMilliseconds / 1000}秒；  转成List集合stopwatch2 耗时：{stopwatch2.ElapsedMilliseconds / 1000}秒；  集合处理 转成对应DataTable  stopwatch3 耗时：{stopwatch3.ElapsedMilliseconds / 1000}秒；datatable生成Excel文件 stopwatch4 耗时：{stopwatch4.ElapsedMilliseconds / 1000}秒");
                         //System.Diagnostics.Process.Start("Explorer.exe", path.Substring(0, path.LastIndexOf("\\")));
                     }
                 }
@@ -213,6 +212,28 @@ namespace ZhuJiangDataMigration
 
 
         }
+
+        #region 多个sheet生成Excel
+        private void CreatExcelBySheet(ExcelPackage excelPackage, List<CostAssign> costAssigns)
+        {
+            var model = costAssigns.FirstOrDefault();
+            model.OrgID = 100.ToString();
+            model.BusinessDate = $"{model.Year}/{model.Month}/{DateTime.DaysInMonth(Convert.ToInt32(model.Year), Convert.ToInt32(model.Month))}";
+            costAssigns.Skip(1).ToList().ForEach(c =>
+            {
+                c.Year = string.Empty;
+                c.Month = string.Empty;
+                c.PlanNum = string.Empty;
+                c.PlanName = string.Empty;
+            });
+            var dt = ToDataTable<CostAssign>(costAssigns);
+            ExcelWorksheet workSheet = excelPackage.Workbook.Worksheets.Add($"{model.Year}年{model.Month}月_{model.PlanNum}{model.PlanName}");
+            workSheet.Cells["A1"].LoadFromDataTable(dt, true);
+            workSheet.Cells["A1:Y1"].AutoFilter = true;
+            workSheet.Cells.AutoFitColumns();
+            
+        }
+        #endregion
 
         private void cmbDataSource_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -232,7 +253,7 @@ namespace ZhuJiangDataMigration
         /// <param name="year"></param>
         /// <param name="month"></param>
         /// <returns></returns>
-        private DataTable GetMigrationSource(string startYear, string startMonth, string endYear,string endMonth, string sourceType)
+        private DataTable GetMigrationSource(string startYear, string startMonth, string endYear, string endMonth, string sourceType)
         {
             string table = string.Empty;
             if (sourceType.Trim() == "辅助核算发放表") table = "top_PA_AuxSum";
@@ -257,8 +278,8 @@ namespace ZhuJiangDataMigration
                             INNER JOIN T_ORG_POST_L t6_L ON t2.FPERSONPOSTID=t6_L.FPOSTID
                             INNER JOIN Top_PA_PayPlan t7 ON t1.FPAYPLANID=t7.FID
                             INNER JOIN Top_PA_PayPlan_L t7_L ON t1.FPAYPLANID=t7_L.FID
-                            ORDER BY t4.FNUMBER ASC"; 
-            
+                            ORDER BY t4.FNUMBER ASC";
+
             var sqlParameters = new SqlParameter[] {
                 new SqlParameter("@StartYear",startYear),
                 new SqlParameter("@EndYear",endYear),
@@ -291,7 +312,10 @@ namespace ZhuJiangDataMigration
                 pck.SaveAsAsync(new FileInfo(filePath));
             }
         }
+
         #endregion
+
+
 
         #region 获取薪酬项目对照表
         /// <summary>
@@ -392,7 +416,7 @@ namespace ZhuJiangDataMigration
                         worksheet.Cells[recordIndex, 21].Value = "岗位#名称";
                         #endregion
                     }
-                    
+
                     recordIndex++;
                     worksheet.Cells[recordIndex, 1].Value = item.BillID;
                     worksheet.Cells[recordIndex, 2].Value = item.Year;
@@ -402,7 +426,7 @@ namespace ZhuJiangDataMigration
                     worksheet.Cells[recordIndex, 6].Value = item.PlanNum;
                     worksheet.Cells[recordIndex, 7].Value = item.PlanName;
                     worksheet.Cells[recordIndex, 8].Value = item.BusinessDate;
-                    worksheet.Cells[recordIndex, 9].Value = recordIndex-1;
+                    worksheet.Cells[recordIndex, 9].Value = recordIndex - 1;
 
                     worksheet.Cells[recordIndex, 10].Value = item.StaffNum;
                     worksheet.Cells[recordIndex, 11].Value = item.StaffName;
