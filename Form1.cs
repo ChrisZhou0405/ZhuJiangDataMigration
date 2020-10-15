@@ -142,7 +142,7 @@ namespace ZhuJiangDataMigration
                         bool isDecimalItem = decimal.TryParse(row[colName].ToString(), out decimal salaryValue);
                         if (isDecimalItem)
                         {
-                            if (salaryValue > 0)
+                            if (salaryValue != 0m)
                             {
                                 costAssigns.Add(costAssign);
                             }
