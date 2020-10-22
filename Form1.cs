@@ -117,7 +117,16 @@ namespace ZhuJiangDataMigration
               
                 foreach (var colName in salaryColumnNameList)
                 {
-                    var mapper = salaryItemMappers.FirstOrDefault(c => c.TQSalaryId == Convert.ToInt32(colName.Substring(7, 6)));
+                    //if (Convert.ToInt32( colName.Substring(7,6))== 174426)
+                    //{
+                    //    string plannum = row["PlanNum"].ToString();
+                    //    var model  = salaryItemMappers.Where(c => c.TQSalaryId == Convert.ToInt32(colName.Substring(7, 6))).ToList();
+                    //    if (model.Count>1)
+                    //    {
+                    //        int uu = model.Count;
+                    //    }
+                    //}
+                    var mapper = salaryItemMappers.FirstOrDefault(c => c.TQSalaryId == Convert.ToInt32(colName.Substring(7, 6))&&c.Plan.Contains(row["PlanNum"].ToString()));
                     if (mapper != null && !string.IsNullOrWhiteSpace(row[colName].ToString()))//对照表有 且当前列的值不为null或者空
                     {
                         var costAssign = new CostAssign
@@ -334,11 +343,12 @@ namespace ZhuJiangDataMigration
 
             foreach (DataRow row in salaryItems.Rows)
             {
-                var model = mapper.FirstOrDefault(c => c.TQSalaryNumber == row["FNUMBER"].ToString());
-                if (model != null)
+                var  matchList = mapper.Where(c => c.TQSalaryNumber == row["FNUMBER"].ToString()).ToList();
+                foreach (var item in matchList)
                 {
-                    mapper.FirstOrDefault(c => c.TQSalaryNumber == row["FNUMBER"].ToString()).TQSalaryId = Convert.ToInt32(row["FID"]);
-                    mapper.FirstOrDefault(c => c.TQSalaryNumber == row["FNUMBER"].ToString()).DataType = (DataTypeEnum)Convert.ToInt32(row["FDATATYPE"]);
+                    item.TQSalaryId = Convert.ToInt32(row["FID"]);
+                    item.DataType = (DataTypeEnum)Convert.ToInt32(row["FDATATYPE"]);
+                    item.Plan = string.IsNullOrWhiteSpace(item.Plan) ? string.Join(",", planMapper.Keys.ToList()) : item.Plan;
                 }
             }
             return mapper;

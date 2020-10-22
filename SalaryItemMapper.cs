@@ -33,6 +33,12 @@ namespace ZhuJiangDataMigration
         [ExcelColumn("腾泉项目")]
         public string TQSalaryName { get; set; }
 
+        /// <summary>
+        /// 匹配方案
+        /// </summary>
+        [ExcelColumn("适用腾泉方案编码")]
+        public string Plan { get; set; }
+
         //[ExcelColumn("备注")]
         //public string Remark { get; set; }
         /// <summary>
