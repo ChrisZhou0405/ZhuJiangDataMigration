@@ -6,7 +6,6 @@ E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\bin\Debug\ZhuJiangD
 E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\bin\Debug\EPPlus.dll
 E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\bin\Debug\System.ComponentModel.Annotations.dll
 E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\bin\Debug\EPPlus.xml
-E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\obj\Debug\ZhuJiangDataMigration.csprojAssemblyReference.cache
 E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\obj\Debug\ZhuJiangDataMigration.Form1.resources
 E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\obj\Debug\ZhuJiangDataMigration.Properties.Resources.resources
 E:\Kingdee\Z_珠江医院\数据迁移\ZhuJiangDataMigration\obj\Debug\ZhuJiangDataMigration.csproj.GenerateResource.cache
